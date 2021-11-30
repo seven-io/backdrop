@@ -1,0 +1,82 @@
+<?php
+/**
+ * @file
+ * Install and uninstall functions for the sms77 module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function sms77_install() {
+    $t = get_t();
+
+    $text = $t('Home > Administration > Configuration > System > sms77');
+    $link = l($text, 'admin/config/system/sms77');
+    backdrop_set_message($t('sms77 module settings are available under !link', [
+            '!link' => $link,
+        ]
+    ));
+}
+
+/**
+ * Implements hook_install().
+ */
+function sms77_uninstall() {}
+
+/**
+ * Implements hook_schema().
+ */
+function sms77_schema() {
+    return [
+        'sms77_user' => [
+            'description' => 'Stores phone number and validation code for users.',
+            'fields' => [
+                'code' => [
+                    'default' => '',
+                    'length' => 5,
+                    'not null' => false,
+                    'type' => 'varchar',
+                ],
+                'phone' => [
+                    'length' => 16,
+                    'not null' => true,
+                    'type' => 'varchar',
+                ],
+                'status' => [
+                    'not null' => true,
+                    'type' => 'int',
+                    'unsigned' => true,
+                ],
+                'uid' => [
+                    'not null' => true,
+                    'type' => 'int',
+                    'unsigned' => true,
+                ],
+            ],
+            'indexes' => [
+                'uid' => ['uid'],
+            ],
+            'primary key' => ['phone'],
+        ],
+    ];
+}
+
+/**
+ * Implements hook_update_N() for backdrop
+ */
+function sms77_update_1000() {
+    $defaults = [
+        'sms77_from' => '',
+        'sms77_api_key' => '',
+        'sms77_registration_form' => '1',
+    ];
+
+    $siteName = config('system.core')->get('site_name');
+    if (strlen($siteName) <= 11) $defaults['sms77_from'] = $siteName;
+
+    $config = config('sms77.settings');
+    foreach ($defaults as $k => $v) $config->set($k, update_variable_get($k, $v));
+    $config->save();
+
+    foreach (array_keys($defaults) as $k) update_variable_del($k);
+}

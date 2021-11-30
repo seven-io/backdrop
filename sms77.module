@@ -1,0 +1,227 @@
+<?php
+/**
+ * @file
+ * sms77 module.
+ */
+
+define('SMS77_ADMIN_PATH', 'admin/config/system/sms77');
+define('SMS77_USER_STATUS_PENDING', 1);
+define('SMS77_USER_STATUS_CONFIRMED', 2);
+
+module_load_include('inc', 'sms77', 'sms77.user');
+
+/**
+ * Implements hook_menu().
+ */
+function sms77_menu() {
+    return [
+        'user/%user/sms77/message' => [
+            'access arguments' => ['administer sms77'],
+            'file' => 'sms77.admin.inc',
+            'page arguments' => ['sms77_admin_test_form', 'user', 1],
+            'page callback' =>'backdrop_get_form',
+            'title' => t('Send Message'),
+            'type' => MENU_LOCAL_TASK,
+        ],
+        SMS77_ADMIN_PATH => [
+            'access arguments' => ['administer sms77'],
+            'description' => t('Administer sms77 settings'),
+            'file' => 'sms77.admin.inc',
+            'page arguments' => ['sms77_admin_form'],
+            'page callback' => 'backdrop_get_form',
+            'title' => 'sms77',
+        ],
+        SMS77_ADMIN_PATH . '/settings' => [
+            'title' => t('Settings'),
+            'type' => MENU_DEFAULT_LOCAL_TASK,
+            'weight' => -10,
+        ],
+        SMS77_ADMIN_PATH . '/test' => [
+            'access arguments' => ['administer sms77'],
+            'description' => 'Test sms77 functionality',
+            'file' => 'sms77.admin.inc',
+            'page arguments' => ['sms77_admin_test_form'],
+            'page callback' => 'backdrop_get_form',
+            'title' => t('Send Test Message'),
+            'type' => MENU_LOCAL_TASK,
+        ],
+    ];
+}
+
+/**
+ * Implements hook_menu_alter().
+ * https://docs.backdropcms.org/api/backdrop/core%21modules%21system%21system.api.php/function/hook_menu_alter/1
+ */
+function sms77_menu_alter(&$callbacks) {
+    $callbacks['user/%user/edit/default']['title'] = 'Account';
+    $callbacks['user/%user/edit/default']['type'] = MENU_DEFAULT_LOCAL_TASK;
+
+    $callbacks['user/%user/edit/sms77']['file'] = 'sms77.pages.inc';
+    $callbacks['user/%user/edit/sms77']['module'] = 'sms77';
+    $callbacks['user/%user/edit/sms77']['page arguments'] = [1];
+    $callbacks['user/%user/edit/sms77']['page callback'] = 'sms77_user_settings';
+    $callbacks['user/%user/edit/sms77']['title'] = 'sms77 SMS';
+
+    $callbacks['user/%user/edit/sms77']['access arguments'] = ['edit own sms number'];
+    $callbacks['user/%user/edit/sms77']['type'] = MENU_LOCAL_TASK;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function sms77_permission() {
+    return [
+        'administer sms77' => [
+            'description' => t('Administer sms77 configuration'),
+            'title' => t('Administer sms77'),
+        ],
+        'edit own sms number' => [
+            'description' => t('User may edit own phone number'),
+            'title' => t('Edit phone number'),
+        ],
+    ];
+}
+
+/**
+ * Access callback for sms77 account editing.
+ */
+function sms77_edit_access($account) {
+    return user_edit_access($account) && user_access('edit own sms number', $account);
+}
+
+/**
+ * Sends SMS via sms77.
+ * @param string $to
+ *   The phone number of the recipient
+ * @param string $text
+ *   The text to send to the recipient
+ * @return bool
+ *   TRUE or FALSE if the message was successfully sent.
+ */
+function sms77_send_sms($to, $text) {
+    return sms77_request('sms', compact('text', 'to'));
+}
+
+/**
+ * Makes text-to-speech call via sms77.
+ * @param string $to
+ *   The phone number of the recipient
+ * @param string $text
+ *   The text to send to the recipient
+ * @return bool
+ *   TRUE or FALSE if the message was successfully sent.
+ */
+function sms77_send_voice($to, $text) {
+    return sms77_request('voice', compact('text', 'to'));
+}
+
+/**
+ * Executes a command using the sms77 REST API.
+ * @param string $endpoint
+ *   The sms77 API endpoint to request.
+ * @param array $data
+ *   The request data for sending to the API.
+ * @return bool
+ *   TRUE if the command executed correctly, FALSE otherwise.
+ */
+function sms77_request($endpoint, $data = []) {
+    $config = config('sms77.settings');
+    $apiKey = $config->get('sms77_api_key');
+
+    if (!$apiKey) return false;
+
+    switch ($endpoint) {
+        case 'sms':
+            $data['from'] = $config->get('sms77_from');
+        case 'voice':
+    }
+
+    $ch = curl_init('https://gateway.sms77.io/api/' . $endpoint);
+    $options = [
+        CURLOPT_HTTPHEADER => [
+            'Accept: application/json',
+            'Content-Type: application/json',
+            'X-Api-Key: ' . $apiKey,
+        ],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POSTFIELDS => json_encode($data),
+    ];
+
+    try {
+        curl_setopt_array($ch, $options);
+        $res = curl_exec($ch);
+        backdrop_set_message($res);
+        $res = json_decode($res);
+        if (100 !== (int)$res->success)
+            watchdog('sms77', 'Error during the HTTP request: ' . $res->success);
+        curl_close($ch);
+        return true;
+    } catch (Exception $e) {
+        watchdog('sms77', $e->getMessage(), [], WATCHDOG_ERROR);
+
+        backdrop_set_message(t('sms77 has returned the error: @error.', [
+            '@error' => $e->getMessage(),
+        ]), 'error');
+
+        return false;
+    }
+}
+
+/**
+ * Checks if a given phone number already exists in the database.
+ * @param string $number
+ *   The sender's phone number.
+ * @result boolean
+ *   TRUE if it exists, FALSE otherwise.
+ */
+function sms77_verify_duplicate_number($number) {
+    $result = sms77_select_query_number($number)
+        ->execute()
+        ->fetchObject();
+
+    return $result && $result->phone === $number;
+}
+
+function sms77_select_query_number($number) {
+    return db_select('sms77_user', 't')
+        ->fields('t')
+        ->condition('t.phone', $number);
+}
+
+/**
+ * Determines if a number is associated with a user account.
+ * @param string $number
+ *   The phone number we are searching for.
+ * @results bool
+ *   TRUE or FALSE based on query.
+ */
+function sms77_verify_number($number) {
+    $result = sms77_select_query_number($number)
+        ->condition('t.status', SMS77_USER_STATUS_CONFIRMED)
+        ->execute()
+        ->fetchObject();
+
+    return !empty($result->uid);
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function sms77_views_api() {
+    return [
+        'api' => 3,
+        'path' => backdrop_get_path('module', 'sms77'),
+    ];
+}
+
+/**
+ * Implements hook_config_info() for backdrop.
+ */
+function sms77_config_info() {
+    return [
+        'sms77.settings' => [
+            'group' => t('Configuration'),
+            'label' => t('sms77 Settings'),
+        ],
+    ];
+}
