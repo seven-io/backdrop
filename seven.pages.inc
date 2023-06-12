@@ -7,27 +7,27 @@
 /**
  * Menu callback for adding and confirming a user's phone number.
  */
-function sms77_user_settings($account) {
-    return backdrop_get_form('sms77_user_settings_form', $account);
+function seven_user_settings($account) {
+    return backdrop_get_form('seven_user_settings_form', $account);
 }
 
 /**
  * User settings form.
  */
-function sms77_user_settings_form($form, &$form_state, $account) {
+function seven_user_settings_form($form, &$form_state, $account) {
     if (isset($form_state['values']['account']))
         $account = user_load($form_state['values']['account']->uid);
 
-    $form['#prefix'] = '<div id=\'sms77-user-form\'>';
+    $form['#prefix'] = '<div id=\'seven-user-form\'>';
     $form['#suffix'] = '</div>';
     $form['uid'] = [
         '#type' => 'hidden',
         '#value' => $account->uid,
     ];
 
-    $sms77 = isset($account->sms77_user) ? $account->sms77_user : null;
+    $seven = isset($account->seven_user) ? $account->seven_user : null;
 
-    if (!$sms77) {
+    if (!$seven) {
         $form['number'] = [
             '#description' =>
                 t('A confirmation code will be sent to the number provided.'),
@@ -40,18 +40,18 @@ function sms77_user_settings_form($form, &$form_state, $account) {
 
         $form['submit'] = [
             '#ajax' => [
-                'callback' => 'sms77_user_settings_ajax_callback',
+                'callback' => 'seven_user_settings_ajax_callback',
                 'method' => 'replace',
-                'wrapper' => 'sms77-user-form',
+                'wrapper' => 'seven-user-form',
             ],
-            '#submit' => ['sms77_user_settings_add_form_submit'],
+            '#submit' => ['seven_user_settings_add_form_submit'],
             '#type' => 'submit',
-            '#validate' => ['sms77_user_settings_add_form_validate'],
+            '#validate' => ['seven_user_settings_add_form_validate'],
             '#value' => t('Confirm number'),
         ];
-    } elseif ((int)$sms77->status === SMS77_USER_STATUS_PENDING) {
+    } elseif ((int)$seven->status === SEVEN_USER_STATUS_PENDING) {
         $form['number'] = [
-            '#markup' => $sms77->phone,
+            '#markup' => $seven->phone,
             '#title' => t('Phone number'),
             '#type' => 'item',
         ];
@@ -66,44 +66,44 @@ function sms77_user_settings_form($form, &$form_state, $account) {
 
         $form['submit'] = [
             '#ajax' => [
-                'callback' => 'sms77_user_settings_ajax_callback',
+                'callback' => 'seven_user_settings_ajax_callback',
                 'method' => 'replace',
-                'wrapper' => 'sms77-user-form',
+                'wrapper' => 'seven-user-form',
             ],
-            '#submit' => ['sms77_user_settings_confirm_form_submit'],
+            '#submit' => ['seven_user_settings_confirm_form_submit'],
             '#type' => 'submit',
-            '#validate' => ['sms77_user_settings_confirm_form_validate'],
+            '#validate' => ['seven_user_settings_confirm_form_validate'],
             '#value' => t('Confirm number'),
         ];
 
         $form['reset'] = [
             '#ajax' => [
-                'callback' => 'sms77_user_settings_ajax_callback',
+                'callback' => 'seven_user_settings_ajax_callback',
                 'method' => 'replace',
-                'wrapper' => 'sms77-user-form',
+                'wrapper' => 'seven-user-form',
             ],
-            '#submit' => ['sms77_user_settings_confirm_form_submit'],
+            '#submit' => ['seven_user_settings_confirm_form_submit'],
             '#type' => 'submit',
-            '#validate' => ['sms77_user_settings_confirm_form_validate'],
+            '#validate' => ['seven_user_settings_confirm_form_validate'],
             '#value' => t('Delete & start over'),
         ];
-    } elseif ((int)$sms77->status === SMS77_USER_STATUS_CONFIRMED) {
-        $form['sms77_user']['number'] = [
+    } elseif ((int)$seven->status === SEVEN_USER_STATUS_CONFIRMED) {
+        $form['seven_user']['number'] = [
             '#description' => t('Your phone number has been confirmed.'),
-            '#markup' => $sms77->phone,
+            '#markup' => $seven->phone,
             '#title' => t('Your phone number'),
             '#type' => 'item',
         ];
 
         $form['reset'] = [
             '#ajax' => [
-                'callback' => 'sms77_user_settings_ajax_callback',
+                'callback' => 'seven_user_settings_ajax_callback',
                 'method' => 'replace',
-                'wrapper' => 'sms77-user-form',
+                'wrapper' => 'seven-user-form',
             ],
-            '#submit' => ['sms77_user_settings_reset_form_submit'],
+            '#submit' => ['seven_user_settings_reset_form_submit'],
             '#type' => 'submit',
-            '#validate' => ['sms77_user_settings_reset_form_validate'],
+            '#validate' => ['seven_user_settings_reset_form_validate'],
             '#value' => t('Delete & start over'),
         ];
 
@@ -120,19 +120,19 @@ function sms77_user_settings_form($form, &$form_state, $account) {
 /**
  * Ajax callback for user forms.
  */
-function sms77_user_settings_ajax_callback($form, &$form_state) {
+function seven_user_settings_ajax_callback($form, &$form_state) {
     return $form;
 }
 
 /**
  * Validation function for user settings form.
  */
-function sms77_user_settings_add_form_validate($form, &$form_state) {
+function seven_user_settings_add_form_validate($form, &$form_state) {
     $number = $form_state['values']['number'];
 
     if (!is_numeric($number))
         $err = 'You must enter a valid phone number.';
-    elseif (sms77_verify_duplicate_number($number))
+    elseif (seven_verify_duplicate_number($number))
         $err = 'Number already in use and can not be assigned to more than one account.';
 
     if (isset($err)) form_set_error('number', t($err));
@@ -141,7 +141,7 @@ function sms77_user_settings_add_form_validate($form, &$form_state) {
 /**
  * Form for composing message to user.
  */
-function sms77_compose_user_message($form, &$form_state) {
+function seven_compose_user_message($form, &$form_state) {
     $user = $form_state['build_info']['args'][1];
 
     $form['message_type'] = [
@@ -179,10 +179,10 @@ function sms77_compose_user_message($form, &$form_state) {
 /**
  * Submit handler for user settings form.
  */
-function sms77_user_settings_add_form_submit($form, &$form_state, $account = null) {
+function seven_user_settings_add_form_submit($form, &$form_state, $account = null) {
     $values = $form_state['values'];
     if (!$account) $account = user_load($values['uid']);
-    $account = sms77_user_send_confirmation($account, $values['number']);
+    $account = seven_user_send_confirmation($account, $values['number']);
     $form_state['values']['account'] = $account;
     $form_state['values']['rebuild'] = true;
 
@@ -192,11 +192,11 @@ function sms77_user_settings_add_form_submit($form, &$form_state, $account = nul
 /**
  * Validation handler for user settings confirmation form.
  */
-function sms77_user_settings_confirm_form_validate($form, &$form_state) {
+function seven_user_settings_confirm_form_validate($form, &$form_state) {
     if ($form_state['clicked_button']['#value'] != t('Confirm number')) return;
 
     $values = $form_state['values'];
-    $code = user_load($values['uid'])->sms77_user->code;
+    $code = user_load($values['uid'])->seven_user->code;
 
     if ($values['confirm_code'] !== $code)
         form_set_error('confirm_code', t('The confirmation code is invalid.'));
@@ -205,18 +205,18 @@ function sms77_user_settings_confirm_form_validate($form, &$form_state) {
 /**
  * Submit handler for user settings confirmation form.
  */
-function sms77_user_settings_confirm_form_submit($form, &$form_state) {
+function seven_user_settings_confirm_form_submit($form, &$form_state) {
     $values = $form_state['values'];
     $uid = $values['uid'];
     $account = user_load($uid);
 
     if ($form_state['clicked_button']['#value'] == t('Delete & start over')) {
-        sms77_user_delete($account);
+        seven_user_delete($account);
         $account = user_load($uid, true);
         $msg = 'Your mobile information has been removed.';
     } else {
-        $account->sms77_user->status = SMS77_USER_STATUS_CONFIRMED;
-        sms77_user_save($account);
+        $account->seven_user->status = SEVEN_USER_STATUS_CONFIRMED;
+        seven_user_save($account);
         $msg = 'Your mobile number has been confirmed.';
     }
 
@@ -229,15 +229,15 @@ function sms77_user_settings_confirm_form_submit($form, &$form_state) {
 /**
  * Validation handler for user settings reset form.
  */
-function sms77_user_settings_reset_form_validate($form, &$form_state) {
+function seven_user_settings_reset_form_validate($form, &$form_state) {
 }
 
 /**
  * Submit handler for user settings reset form.
  */
-function sms77_user_settings_reset_form_submit($form, &$form_state) {
+function seven_user_settings_reset_form_submit($form, &$form_state) {
     $uid = $form_state['values']['uid'];
-    sms77_user_delete(user_load($uid));
+    seven_user_delete(user_load($uid));
     backdrop_set_message(t('Your phone information has been removed.'));
     $form_state['values']['account'] = user_load($uid, true);
     $form_state['rebuild'] = true;

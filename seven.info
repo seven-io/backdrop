@@ -1,0 +1,9 @@
+backdrop = 1.x
+configure = admin/config/system/seven
+description = Integration of seven with Backdrop
+name = seven
+package = seven
+tags[] = Administration
+tags[] = SMS
+type = module
+version = "1.0.0"

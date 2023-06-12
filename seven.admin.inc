@@ -7,18 +7,18 @@
 /**
  * Administration settings form.
  */
-function sms77_admin_form($form, &$form_state) {
-    $config = config('sms77.settings');
+function seven_admin_form($form, &$form_state) {
+    $config = config('seven.settings');
 
-    $form['sms77_api_key'] = [
-        '#default_value' => $config->get('sms77_api_key'),
-        '#description' => t('Create one @ https://app.sms77.io/developer'),
+    $form['seven_api_key'] = [
+        '#default_value' => $config->get('seven_api_key'),
+        '#description' => t('Create one @ https://app.seven.io/developer'),
         '#required' => true,
         '#title' => t('API Key'),
         '#type' => 'textfield',
     ];
 
-    $from = $config->get('sms77_from');
+    $from = $config->get('seven_from');
     if (!$from) {
         $siteName = config('system.core')->get('site_name');
         $length = strlen($siteName);
@@ -27,7 +27,7 @@ function sms77_admin_form($form, &$form_state) {
             if ($length <= 16) $from = $siteName;
         } elseif ($length <= 11) $from = $siteName;
     }
-    $form['sms77_from'] = [
+    $form['seven_from'] = [
         '#default_value' => $from,
         '#description' => t('Optionally set a custom sender identifier'),
         '#maxlength' => 16,
@@ -35,8 +35,8 @@ function sms77_admin_form($form, &$form_state) {
         '#type' => 'textfield',
     ];
 
-    $form['sms77_registration_form'] = [
-        '#default_value' => $config->get('sms77_registration_form'),
+    $form['seven_registration_form'] = [
+        '#default_value' => $config->get('seven_registration_form'),
         '#description' => t('If not disabled, render a text input which can be required.'),
         '#options' => [t('Disabled'), t('Optional'), t('Required')],
         '#title' => t('Collect phone number during registration?'),
@@ -45,7 +45,7 @@ function sms77_admin_form($form, &$form_state) {
 
     $form['submit'] = [
         '#type' => 'submit',
-        '#value' => t('Save sms77 Settings'),
+        '#value' => t('Save seven Settings'),
     ];
 
     return $form;
@@ -54,27 +54,27 @@ function sms77_admin_form($form, &$form_state) {
 /**
  * Backdrop submit for config, replace call to system_settings_form()
  */
-function sms77_admin_form_submit($form, &$form_state) {
+function seven_admin_form_submit($form, &$form_state) {
     $keys = [
-        'sms77_from',
-        'sms77_api_key',
-        'sms77_registration_form',
+        'seven_from',
+        'seven_api_key',
+        'seven_registration_form',
     ];
-    $config = config('sms77.settings');
+    $config = config('seven.settings');
 
     foreach ($keys as $k) $config->set($k, $form_state['values'][$k]);
 
     $config->save();
 
-    backdrop_set_message('Configuration saved for sms77');
+    backdrop_set_message('Configuration saved for seven');
 }
 
 /**
  * Administrative form for testing messages.
  */
-function sms77_admin_test_form($form, &$form_state) {
+function seven_admin_test_form($form, &$form_state) {
     $args = $form_state['build_info']['args'];
-    $phone = isset($args[1]->sms77_user->phone) ? $args[1]->sms77_user->phone : null;
+    $phone = isset($args[1]->seven_user->phone) ? $args[1]->seven_user->phone : null;
 
     $form['message_type'] = [
         '#default_value' => 'sms',
@@ -113,7 +113,7 @@ function sms77_admin_test_form($form, &$form_state) {
 /**
  * Validation handler for the administrative test message form.
  */
-function sms77_admin_test_form_validate($form, &$form_state) {
+function seven_admin_test_form_validate($form, &$form_state) {
     $values = $form_state['values'];
     $type = $values['message_type'];
     $maxLength = 'sms' === $type ? 1520 : 10000;
@@ -132,9 +132,9 @@ function sms77_admin_test_form_validate($form, &$form_state) {
 /**
  * Submit handler for the administrative test message testing form.
  */
-function sms77_admin_test_form_submit($form, &$form_state) {
+function seven_admin_test_form_submit($form, &$form_state) {
     $values = $form_state['values'];
-    $fn = 'sms77_send_' . $values['message_type'];
+    $fn = 'seven_send_' . $values['message_type'];
 
     if ($fn($values['number'], $values['message'])) {
         $msg = 'Your message has been sent';

@@ -1,18 +1,18 @@
 <?php
 /**
  * @file
- * Install and uninstall functions for the sms77 module.
+ * Install and uninstall functions for the seven module.
  */
 
 /**
  * Implements hook_install().
  */
-function sms77_install() {
+function seven_install() {
     $t = get_t();
 
-    $text = $t('Home > Administration > Configuration > System > sms77');
-    $link = l($text, 'admin/config/system/sms77');
-    backdrop_set_message($t('sms77 module settings are available under !link', [
+    $text = $t('Home > Administration > Configuration > System > seven');
+    $link = l($text, 'admin/config/system/seven');
+    backdrop_set_message($t('seven module settings are available under !link', [
             '!link' => $link,
         ]
     ));
@@ -21,14 +21,14 @@ function sms77_install() {
 /**
  * Implements hook_install().
  */
-function sms77_uninstall() {}
+function seven_uninstall() {}
 
 /**
  * Implements hook_schema().
  */
-function sms77_schema() {
+function seven_schema() {
     return [
-        'sms77_user' => [
+        'seven_user' => [
             'description' => 'Stores phone number and validation code for users.',
             'fields' => [
                 'code' => [
@@ -64,17 +64,17 @@ function sms77_schema() {
 /**
  * Implements hook_update_N() for backdrop
  */
-function sms77_update_1000() {
+function seven_update_1000() {
     $defaults = [
-        'sms77_from' => '',
-        'sms77_api_key' => '',
-        'sms77_registration_form' => '1',
+        'seven_from' => '',
+        'seven_api_key' => '',
+        'seven_registration_form' => '1',
     ];
 
     $siteName = config('system.core')->get('site_name');
-    if (strlen($siteName) <= 11) $defaults['sms77_from'] = $siteName;
+    if (strlen($siteName) <= 11) $defaults['seven_from'] = $siteName;
 
-    $config = config('sms77.settings');
+    $config = config('seven.settings');
     foreach ($defaults as $k => $v) $config->set($k, update_variable_get($k, $v));
     $config->save();
 
